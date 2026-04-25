@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,17 +10,7 @@
 </head>
 <body class="flex h-screen overflow-hidden">
 
-    <aside class="sidebar w-64 flex-shrink-0 text-white flex flex-col bg-[#343a40]">
-        <div class="p-4 flex items-center border-b border-gray-600 h-16">
-            <i class="fa-solid fa-book-open-reader text-2xl mr-3"></i>
-            <span class="text-xl font-semibold tracking-wide">QL Nhân Sự</span>
-        </div>
-        <nav class="flex-1 overflow-y-auto py-2">
-            <div class="sidebar-heading px-4 py-2 text-xs text-gray-500 font-bold uppercase">QUẢN LÝ DANH MỤC</div>
-            <a href="/department" class="sidebar-item block px-4 py-2 hover:bg-gray-700 text-gray-300"><i class="fa-regular fa-building w-6 text-center mr-2"></i> Khoa / Viện</a>
-            <a href="/position" class="sidebar-item active block px-4 py-2 hover:bg-gray-700 text-white"><i class="fa-solid fa-briefcase w-6 text-center mr-2"></i> Chức vụ</a>
-        </nav>
-    </aside>
+    <div th:replace="~{fragments/sidebar :: sidebar('position')}"></div>
 
     <div class="flex-1 flex flex-col bg-[#f4f6f9]">
         <header class="bg-white shadow-sm h-14 flex items-center px-4 justify-between shrink-0">

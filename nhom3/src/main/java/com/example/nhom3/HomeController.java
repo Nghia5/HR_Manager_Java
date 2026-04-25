@@ -11,8 +11,20 @@ public class HomeController {
     public String quanLyDanhMuc() {
         return "department";
     }
+    
     @GetMapping("/position")
     public String danhSachNhanSu() {
         return "position";
     }
+    
+    @GetMapping("/employees")
+    public String quanLyNhanVien() {
+        return "employee";
+    }
+
+    @GetMapping("/employee-position")
+    public String quanLyPhanCong() {
+        return "employee_position";
+    }
+
 }

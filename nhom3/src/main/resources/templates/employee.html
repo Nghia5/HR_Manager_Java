@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QL Nhân Sự - Nhân Viên</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="flex h-screen overflow-hidden bg-[#f4f6f9]">
+
+    <div th:replace="~{fragments/sidebar :: sidebar('employee')}"></div>
+
+    <div class="flex-1 flex flex-col">
+        <header class="bg-white shadow-sm h-14 flex items-center px-4 justify-between shrink-0">
+            <span class="text-sm text-gray-600">Trang chủ / Quản lý Nhân viên</span>
+        </header>
+
+        <main class="flex-1 overflow-y-auto p-6">
+            <h1 class="text-2xl font-normal text-gray-800 mb-4">Danh sách Nhân viên</h1>
+            
+            <div class="bg-white border border-gray-200 rounded-md shadow-sm">
+                <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h2 class="text-gray-700 font-medium text-lg"><i class="fa-solid fa-list mr-2"></i>Bảng Employees</h2>
+                    <button onclick="openAddEmpModal()" class="bg-[#0d6efd] hover:bg-[#0b5ed7] text-white px-4 py-2 rounded text-sm flex items-center shadow-sm transition">
+                        <i class="fa-solid fa-plus mr-2"></i> Thêm Nhân viên
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-white text-gray-800 text-sm border-b uppercase font-bold">
+                                <th class="p-3 text-center w-16">STT</th>
+                                <th class="p-3">Mã NV</th>
+                                <th class="p-3">Họ và Tên</th>
+                                <th class="p-3">Khoa/Phòng</th>
+                                <th class="p-3">Chức vụ</th>
+                                <th class="p-3 text-center">Trạng thái</th>
+                                <th class="p-3 text-center w-32">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emp-body" class="divide-y divide-gray-100 text-sm">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="empModal" class="fixed inset-0 bg-black bg-opacity-50 hidden overflow-y-auto h-full w-full z-50 transition-opacity">
+        <div class="relative top-5 mx-auto p-6 border w-[750px] shadow-2xl rounded-lg bg-white mb-10">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-xl font-semibold text-gray-800" id="modalTitle">Thêm Nhân Viên Mới</h3>
+                <button onclick="closeEmpModal()" class="text-gray-400 hover:text-gray-600 font-bold text-2xl">&times;</button>
+            </div>
+            
+            <form id="empForm">
+                <input type="hidden" id="empId">
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Mã NV <span class="text-red-500">*</span></label>
+                        <input type="text" id="code" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none" placeholder="VD: NV001" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Họ tên <span class="text-red-500">*</span></label>
+                        <input type="text" id="fullName" class="w-full border rounded px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none" placeholder="Nguyễn Văn A" required>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Ngày sinh</label>
+                        <input type="date" id="dateOfBirth" class="w-full border rounded px-3 py-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Giới tính</label>
+                        <select id="gender" class="w-full border rounded px-3 py-2 outline-none">
+                            <option value="1">Nam</option>
+                            <option value="0">Nữ</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Hệ số lương</label>
+                        <input type="number" step="0.01" id="salaryCoefficient" class="w-full border rounded px-3 py-2 outline-none" placeholder="0.0">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Khoa / Viện <span class="text-red-500">*</span></label>
+                        <select id="departmentId" class="w-full border rounded px-3 py-2 outline-none" required>
+                            <option value="">-- Chọn Khoa --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Chức vụ <span class="text-red-500">*</span></label>
+                        <select id="positionId" class="w-full border rounded px-3 py-2 outline-none" required>
+                            <option value="">-- Chọn Chức vụ --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Học vị</label>
+                        <input type="text" id="academicDegree" class="w-full border rounded px-3 py-2 outline-none" placeholder="Thạc sĩ, Tiến sĩ...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Chuyên ngành</label>
+                        <input type="text" id="specialization" class="w-full border rounded px-3 py-2 outline-none" placeholder="Công nghệ thông tin...">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Email</label>
+                        <input type="email" id="email" class="w-full border rounded px-3 py-2 outline-none" placeholder="example@gmail.com">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Số điện thoại</label>
+                        <input type="text" id="phone" class="w-full border rounded px-3 py-2 outline-none" placeholder="09xxxxxxxx">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Địa chỉ</label>
+                    <input type="text" id="address" class="w-full border rounded px-3 py-2 outline-none" placeholder="Địa chỉ thường trú">
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Trạng thái làm việc</label>
+                    <select id="isActive" class="w-full border rounded px-3 py-2 outline-none bg-gray-50">
+                        <option value="true" class="text-green-600 font-semibold">Đang làm việc (✅)</option>
+                        <option value="false" class="text-red-600 font-semibold">Đã nghỉ (❌)</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end gap-3 border-t pt-4">
+                    <button type="button" onclick="closeEmpModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-md transition font-medium">Hủy</button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2 rounded-md shadow-md transition font-medium">Lưu lại</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/employee.js"></script>
+</body>
+</html>
