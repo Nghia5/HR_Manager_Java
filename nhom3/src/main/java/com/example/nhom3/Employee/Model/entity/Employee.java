@@ -1,38 +1,64 @@
-package com.example.nhom3.Employee.Model.entity;
+package com.example.nhom3.employee.model.entity;
 
-import com.example.nhom3.Department.Model.entity.Department;
-import com.example.nhom3.Position.Model.entity.Position;
-import jakarta.persistence.*;
-import lombok.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import com.example.nhom3.department.model.entity.Department;
+import com.example.nhom3.position.model.entity.Position;
+import com.example.nhom3.user.model.entity.User;
+
 @Entity
 @Table(name = "employees")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(updatable = false, nullable = false)
     private UUID id;
 
-    @Column(length = 20, unique = true, nullable = false)
+    // Khóa ngoại liên kết bảng User (1 Employee ứng với 1 Account User)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(unique = true, nullable = false, length = 20)
     private String code;
 
-    @Column(name = "full_name", length = 100, nullable = false)
+    @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
-    private Byte gender; 
+    @Column(length = 50)
+    private String gender; // 1: Nam, 2: Nữ, 0: Khác
 
-    // Bỏ unique = true vì trong SQL Server, 
-    // nhiều giá trị NULL sẽ bị coi là trùng lặp nếu có ràng buộc UNIQUE
-    @Column(length = 100) 
+    @Column(length = 100)
     private String email;
 
     @Column(length = 20)
@@ -41,25 +67,24 @@ public class Employee {
     @Column(length = 255)
     private String address;
 
-    @Column(name = "user_id") // Bỏ unique để tránh lỗi 500 khi lưu nhiều bản ghi NULL
-    private UUID userId; 
-
-    @ManyToOne(fetch = FetchType.EAGER)
+    // Khóa ngoại liên kết Department
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")
     private Department department;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    // Khóa ngoại liên kết Position
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "position_id")
     private Position position;
 
     @Column(name = "hire_date")
     private LocalDate hireDate;
 
-    @Column(name = "contract_type", length = 100)
+    @Column(name = "contract_type", length = 255)
     private String contractType;
 
-    @Column(name = "salary_coefficient")
-    private Double salaryCoefficient;
+    @Column(name = "salary_coefficient", precision = 4, scale = 2)
+    private BigDecimal salaryCoefficient;
 
     @Column(name = "academic_degree", length = 100)
     private String academicDegree;
@@ -67,28 +92,47 @@ public class Employee {
     @Column(name = "academic_title", length = 100)
     private String academicTitle;
 
-    @Column(name = "specialization", length = 100)
+    @Column(length = 255)
     private String specialization;
 
+    @Column(name = "start_date")
+    private LocalDateTime startDate;
+
+    @Column(name = "end_date")
+    private LocalDateTime endDate;
+
+    // Các trường Audit
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "created_by")
+    private UUID createdBy;
+
+    @Column(name = "updated_by")
+    private UUID updatedBy;
+
+    // Phục vụ xóa mềm
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
+    @Column(name = "deleted_by")
+    private UUID deletedBy;
+
     @Column(name = "is_active")
-    private Boolean isActive = true;
+    private Boolean isActive;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
+        if (this.isActive == null)
+            this.isActive = true;
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 }

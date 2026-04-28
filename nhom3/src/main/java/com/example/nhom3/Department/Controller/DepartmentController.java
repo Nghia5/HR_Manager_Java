@@ -1,10 +1,12 @@
-package com.example.nhom3.Department.Controller;
+package com.example.nhom3.department.controller;
 
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,57 +16,56 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.nhom3.Department.Model.entity.Department;
-import com.example.nhom3.Department.Service.DepartmentService;
+import com.example.nhom3.department.model.dto.DepartmentRequest;
+import com.example.nhom3.department.model.dto.DepartmentResponse;
+import com.example.nhom3.department.service.DepartmentService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/departments")
+@CrossOrigin("*")
 public class DepartmentController {
 
     @Autowired
     private DepartmentService departmentService;
 
-    // 1. Lấy danh sách tất cả Khoa/Viện
+    // 1. GET: Lấy danh sách
     @GetMapping
-    public List<Department> getAll() {
-        return departmentService.getAllDepartments();
+    public ResponseEntity<List<DepartmentResponse>> getAll() {
+        return ResponseEntity.ok(departmentService.getAllDepartments());
     }
 
-    // 2. Lấy thông tin 1 Khoa theo ID
-    @GetMapping("/{id}")
-    public ResponseEntity<Department> getById(@PathVariable UUID id) {
-        Department dept = departmentService.getDepartmentById(id);
-        return dept != null ? ResponseEntity.ok(dept) : ResponseEntity.notFound().build();
-    }
-
-    // 3. Thêm mới Khoa/Viện
+    // 2. POST: Thêm mới
     @PostMapping
-    public Department create(@RequestBody Department department) {
-        return departmentService.createOrUpdateDepartment(department);
-    }
-
-    // 4. Cập nhật thông tin Khoa/Viện
-    @PutMapping("/{id}")
-    public ResponseEntity<Department> update(@PathVariable UUID id, @RequestBody Department departmentDetails) {
-        Department dept = departmentService.getDepartmentById(id);
-        if (dept == null) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<?> create(@Valid @RequestBody DepartmentRequest request) {
+        try {
+            DepartmentResponse response = departmentService.createDepartment(request);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        
-        // Cập nhật các trường dữ liệu
-        dept.setCode(departmentDetails.getCode());
-        dept.setName(departmentDetails.getName());
-        dept.setDescription(departmentDetails.getDescription());
-        dept.setEstablishedDate(departmentDetails.getEstablishedDate());
-        dept.setIsActive(departmentDetails.getIsActive());
-        
-        return ResponseEntity.ok(departmentService.createOrUpdateDepartment(dept));
     }
 
-    // 5. Xóa Khoa/Viện
+    // 3. PUT: Cập nhật theo ID
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable UUID id, @Valid @RequestBody DepartmentRequest request) {
+        try {
+            DepartmentResponse response = departmentService.updateDepartment(id, request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 4. DELETE: Xóa mềm theo ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable UUID id) {
-        departmentService.deleteDepartment(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> delete(@PathVariable UUID id) {
+        try {
+            departmentService.deleteDepartment(id);
+            return ResponseEntity.ok("Xóa khoa/phòng ban thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

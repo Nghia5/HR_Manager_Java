@@ -1,88 +1,113 @@
-package com.example.nhom3.EmployeePosition.Service;
+package com.example.nhom3.employeeposition.service;
 
-import com.example.nhom3.EmployeePosition.Model.dto.EmployeePositionDTO;
-import com.example.nhom3.EmployeePosition.Model.entity.EmployeePosition;
-import com.example.nhom3.EmployeePosition.Repository.EmployeePositionRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import com.example.nhom3.employeeposition.model.dto.EmployeePositionRequest;
+import com.example.nhom3.employeeposition.model.dto.EmployeePositionResponse;
+import com.example.nhom3.employee.model.entity.Employee;
+import com.example.nhom3.employeeposition.model.entity.EmployeePosition;
+import com.example.nhom3.position.model.entity.Position;
+import com.example.nhom3.employeeposition.repository.EmployeePositionRepository;
+import com.example.nhom3.employee.repository.EmployeeRepository;
+import com.example.nhom3.position.repository.PositionRepository;
 
 @Service
 public class EmployeePositionService {
 
     @Autowired
-    private EmployeePositionRepository repository;
+    private EmployeePositionRepository employeePositionRepository;
+    @Autowired
+    private EmployeeRepository employeeRepository;
+    @Autowired
+    private PositionRepository positionRepository;
 
-    // Lấy danh sách để đổ ra bảng
-    public List<EmployeePositionDTO> getAllPositions() {
-        List<Object[]> results = repository.findAllWithNames();
-        List<EmployeePositionDTO> dtoList = new ArrayList<>();
+    public List<EmployeePositionResponse> getAllAssignments() {
+        // Lấy tất cả các bản ghi phân công đang active (is_active = 1)
+        List<EmployeePosition> list = employeePositionRepository.findByIsActiveTrue();
 
-        for (Object[] row : results) {
-            EmployeePositionDTO dto = new EmployeePositionDTO();
-            dto.setId(row[0] != null ? UUID.fromString(row[0].toString()) : null);
-            dto.setEmployeeId(row[1] != null ? UUID.fromString(row[1].toString()) : null);
-            dto.setPositionId(row[2] != null ? UUID.fromString(row[2].toString()) : null);
-            dto.setStartDate(row[3] != null ? (LocalDateTime) row[3] : null);
-            dto.setEndDate(row[4] != null ? (LocalDateTime) row[4] : null);
-            dto.setDescription(row[5] != null ? row[5].toString() : null);
-            dto.setNote(row[6] != null ? row[6].toString() : null);
-            dto.setIsActive(row[7] != null && (Boolean) row[7]);
-            dto.setEmployeeName(row[8] != null ? row[8].toString() : null);
-            dto.setPositionName(row[9] != null ? row[9].toString() : null);
-            
-            dtoList.add(dto);
-        }
-        return dtoList;
+        // Chuyển đổi từ Entity sang DTO để trả về cho Frontend
+        return list.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
-    // Thêm mới
-    public EmployeePosition createPosition(EmployeePositionDTO dto) {
-        EmployeePosition entity = new EmployeePosition();
-        entity.setEmployeeId(dto.getEmployeeId());
-        entity.setPositionId(dto.getPositionId());
-        entity.setStartDate(dto.getStartDate());
-        entity.setEndDate(dto.getEndDate());
-        entity.setDescription(dto.getDescription());
-        entity.setNote(dto.getNote());
-        entity.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
-        
-        return repository.save(entity);
+    // 1. Lấy lịch sử công tác của 1 nhân viên
+    public List<EmployeePositionResponse> getHistoryByEmployee(UUID employeeId) {
+        return employeePositionRepository.findByEmployeeIdAndIsActiveTrueOrderByStartDateDesc(employeeId)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
-    // Xóa mềm (Soft Delete)
-    public boolean softDeletePosition(UUID id) {
-        Optional<EmployeePosition> optional = repository.findById(id);
-        if (optional.isPresent()) {
-            EmployeePosition entity = optional.get();
-            entity.setDeletedAt(LocalDateTime.now());
-            entity.setIsActive(false);
-            repository.save(entity);
-            return true;
-        }
-        return false;
+    // 2. Thêm mới một phân công / kiêm nhiệm
+    public EmployeePositionResponse createAssignment(EmployeePositionRequest request) {
+        Employee emp = employeeRepository.findById(request.employeeId())
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy nhân viên!"));
+
+        Position pos = positionRepository.findById(request.positionId())
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy chức vụ!"));
+
+        EmployeePosition ep = new EmployeePosition();
+        ep.setEmployee(emp);
+        ep.setPosition(pos);
+        ep.setDescription(request.description());
+        ep.setNote(request.note());
+        ep.setStartDate(request.startDate());
+        ep.setEndDate(request.endDate());
+
+        EmployeePosition savedEp = employeePositionRepository.save(ep);
+        return mapToResponse(savedEp);
     }
 
-    // Thêm hàm này vào trong class EmployeePositionService
-    public EmployeePosition updatePosition(UUID id, EmployeePositionDTO dto) {
-        Optional<EmployeePosition> optional = repository.findById(id);
-        if (optional.isPresent()) {
-            EmployeePosition entity = optional.get();
-            entity.setEmployeeId(dto.getEmployeeId());
-            entity.setPositionId(dto.getPositionId());
-            entity.setStartDate(dto.getStartDate());
-            entity.setEndDate(dto.getEndDate());
-            entity.setDescription(dto.getDescription());
-            entity.setNote(dto.getNote());
-            entity.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
-            entity.setUpdatedAt(LocalDateTime.now());
-            return repository.save(entity);
-        }
-        return null;
+    // 3. Cập nhật (Ví dụ: Cập nhật ngày kết thúc khi thôi kiêm nhiệm)
+    public EmployeePositionResponse updateAssignment(UUID id, EmployeePositionRequest request) {
+        EmployeePosition ep = employeePositionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy bản ghi phân công!"));
+
+        Position pos = positionRepository.findById(request.positionId())
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy chức vụ!"));
+
+        // Thông thường không cho đổi nhân viên, chỉ đổi chức vụ, note hoặc thời gian
+        ep.setPosition(pos);
+        ep.setDescription(request.description());
+        ep.setNote(request.note());
+        ep.setStartDate(request.startDate());
+        ep.setEndDate(request.endDate());
+
+        EmployeePosition updatedEp = employeePositionRepository.save(ep);
+        return mapToResponse(updatedEp);
+    }
+
+    // 4. Xóa mềm bản ghi
+    public void deleteAssignment(UUID id) {
+        EmployeePosition ep = employeePositionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy bản ghi phân công!"));
+
+        ep.setIsActive(false);
+        ep.setDeletedAt(LocalDateTime.now());
+        employeePositionRepository.save(ep);
+    }
+
+    // Helper: Map Entity -> DTO
+    private EmployeePositionResponse mapToResponse(EmployeePosition ep) {
+        return new EmployeePositionResponse(
+                ep.getId(),
+                ep.getEmployee().getId(),
+                ep.getEmployee().getFullName(),
+                ep.getEmployee().getCode(),
+                ep.getPosition().getId(),
+                ep.getPosition().getName(),
+                ep.getPosition().getDepartment() != null ? ep.getPosition().getDepartment().getName() : "",
+                ep.getDescription(),
+                ep.getNote(),
+                ep.getStartDate(),
+                ep.getEndDate(),
+                ep.getIsActive());
     }
 }

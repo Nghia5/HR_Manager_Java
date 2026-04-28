@@ -1,64 +1,74 @@
-package com.example.nhom3.EmployeePosition.Controller;
-
-import com.example.nhom3.EmployeePosition.Model.dto.EmployeePositionDTO;
-import com.example.nhom3.EmployeePosition.Model.entity.EmployeePosition;
-import com.example.nhom3.EmployeePosition.Service.EmployeePositionService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+package com.example.nhom3.employeeposition.controller;
 
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.nhom3.employeeposition.model.dto.EmployeePositionRequest;
+import com.example.nhom3.employeeposition.model.dto.EmployeePositionResponse;
+import com.example.nhom3.employeeposition.service.EmployeePositionService;
+
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/employee-positions")
-@CrossOrigin(origins = "*")
+@CrossOrigin("*")
 public class EmployeePositionController {
 
     @Autowired
-    private EmployeePositionService service;
+    private EmployeePositionService employeePositionService;
 
-    @GetMapping
-    public ResponseEntity<List<EmployeePositionDTO>> getAll() {
-        try {
-            return ResponseEntity.ok(service.getAllPositions());
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+    @GetMapping("/all")
+    public ResponseEntity<List<EmployeePositionResponse>> getAll() {
+        // Chúng ta sẽ tận dụng hàm lấy tất cả các bản ghi đang active
+        return ResponseEntity.ok(employeePositionService.getAllAssignments());
+    }
+
+    // Lấy lịch sử công tác của 1 nhân viên cụ thể
+    @GetMapping("/employee/{employeeId}")
+    public ResponseEntity<List<EmployeePositionResponse>> getByEmployee(@PathVariable UUID employeeId) {
+        return ResponseEntity.ok(employeePositionService.getHistoryByEmployee(employeeId));
     }
 
     @PostMapping
-    public ResponseEntity<EmployeePosition> create(@RequestBody EmployeePositionDTO dto) {
+    public ResponseEntity<?> create(@Valid @RequestBody EmployeePositionRequest request) {
         try {
-            return ResponseEntity.status(HttpStatus.CREATED).body(service.createPosition(dto));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            EmployeePositionResponse response = employeePositionService.createAssignment(request);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    // THÊM MỚI: Xử lý cập nhật (Sửa)
     @PutMapping("/{id}")
-    public ResponseEntity<EmployeePosition> update(@PathVariable UUID id, @RequestBody EmployeePositionDTO dto) {
+    public ResponseEntity<?> update(@PathVariable UUID id, @Valid @RequestBody EmployeePositionRequest request) {
         try {
-            EmployeePosition updated = service.updatePosition(id, dto);
-            if (updated != null) return ResponseEntity.ok(updated);
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            EmployeePositionResponse response = employeePositionService.updateAssignment(id, request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> delete(@PathVariable UUID id) {
+    public ResponseEntity<?> delete(@PathVariable UUID id) {
         try {
-            if (service.softDeletePosition(id)) return ResponseEntity.ok("Đã xóa thành công");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi");
+            employeePositionService.deleteAssignment(id);
+            return ResponseEntity.ok("Đã xóa bản ghi phân công công việc!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }
